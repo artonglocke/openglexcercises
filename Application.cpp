@@ -2,6 +2,9 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <string>
+#include <sstream>
+#include <fstream>
 
 enum ShaderType
 {
@@ -35,6 +38,19 @@ unsigned int CreateShader(const std::string& vertexSource, const std::string& fr
 	glDeleteShader(fragmentShader);
 
 	return program;
+}
+
+std::string ParseShader(const std::string& filepath)
+{
+	std::ifstream stream(filepath);
+	std::string line;
+	std::stringstream sourceStream;	
+	while (std::getline(stream, line))
+	{
+		sourceStream << line << "\n";
+	}
+
+	return sourceStream.str();
 }
 
 int main(void)
@@ -84,27 +100,13 @@ int main(void)
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	std::string vertexShader =
-		"#version 330 core\n"
-		"\n"
-		"layout(location = 0) in vec4 position;\n"
-		"\n"
-		"void main()\n"
-		"{\n"
-		"	gl_Position = position;\n"
-		"}\n";
+	std::string vertexShaderPath = "Shaders/VertexShader.glsl";
+	std::string vertexShader = ParseShader(vertexShaderPath);
 
 
 	// Pinky triangle!
-	std::string fragmentShader =
-		"#version 330 core\n"
-		"\n"
-		"layout(location = 0) out vec4 color;\n"
-		"\n"
-		"void main()\n"
-		"{\n"
-		"	color = vec4(0.99, 0.39, 0.6, 1.0 );\n"
-		"}\n";
+	std::string fragmentShaderPath = "Shaders/FragmentShader.glsl";
+	std::string fragmentShader = ParseShader(fragmentShaderPath);
 	unsigned int shader = CreateShader(vertexShader, fragmentShader);
 	glUseProgram(shader);
 

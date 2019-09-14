@@ -2,7 +2,9 @@
 
 layout(location = 0) out vec4 color;
 
+ uniform vec4 uniformColor;
+
 void main()
 {
-	color = vec4(0.99, 0.39, 0.6, 1.0);
+	color = uniformColor;
 }

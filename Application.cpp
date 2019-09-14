@@ -6,18 +6,36 @@
 #include <sstream>
 #include <fstream>
 
-enum ShaderType
+#define Assert(func) if(!(func));
+
+#define glVerify(func) glClearErrors(); \
+		func;\
+		Assert(glLogError(#func, __FILE__, __LINE__));
+
+void glClearErrors()
 {
-	Vertex,
-	Fragment
-};
+	while (glGetError() != GL_NO_ERROR);
+}
+
+bool glLogError(const char* functionName, const char* filename, int line)
+{
+	while (GLenum error = glGetError())
+	{
+		std::cout << "[OpenGl Error] " << std::endl <<
+			"in function: " << functionName << std::endl <<
+			"in file: " << filename << std::endl <<
+			"in line: " << line << std::endl;
+		return false;
+	}
+	return true;
+}
 
 unsigned int CompileShader(GLenum type, const std::string& source)
 {
-	unsigned int id = glCreateShader(type);
+	glVerify(unsigned int id = glCreateShader(type));
 	const char* cSource = source.c_str();
-	glShaderSource(id, 1, &cSource, nullptr);
-	glCompileShader(id);
+	glVerify(glShaderSource(id, 1, &cSource, nullptr));
+	glVerify(glCompileShader(id));
 	return id;
 }
 
@@ -25,17 +43,17 @@ unsigned int CompileShader(GLenum type, const std::string& source)
 
 unsigned int CreateShader(const std::string& vertexSource, const std::string& fragmentSource)
 {
-	unsigned int program = glCreateProgram();
+	glVerify(unsigned int program = glCreateProgram());
 	unsigned int vertexShader = CompileShader(GL_VERTEX_SHADER, vertexSource);
 	unsigned int fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fragmentSource);
 
-	glAttachShader(program, vertexShader);
-	glAttachShader(program, fragmentShader);
-	glLinkProgram(program);
-	glValidateProgram(program);
+	glVerify(glAttachShader(program, vertexShader));
+	glVerify(glAttachShader(program, fragmentShader));
+	glVerify(glLinkProgram(program));
+	glVerify(glValidateProgram(program));
 
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
+	glVerify(glDeleteShader(vertexShader));
+	glVerify(glDeleteShader(fragmentShader));
 
 	return program;
 }
@@ -71,6 +89,7 @@ int main(void)
 
 	/* Make the window's context current */
 	glfwMakeContextCurrent(window);
+	glfwSwapInterval(1);
 
 	if (glewInit() != GLEW_OK)
 	{
@@ -85,20 +104,30 @@ int main(void)
 
 	float positions[] =
 	{
-		-0.5f, 0.5f,
-		0.0f, -0.5f,
-		0.5f, -0.5f
+		-0.5f, -0.5f, // 0
+		0.3f, -0.3f, // 1
+		0.3f, 0.3f, // 2
+		-0.5f, 0.5f // 3
+	};
+
+	unsigned int indices[]
+	{
+		0, 1, 2,
+		2, 3, 0
 	};
 
 	unsigned int vertexBuffer;
-	glGenBuffers(1, &vertexBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6, positions, GL_STATIC_DRAW);
+	glVerify(glGenBuffers(1, &vertexBuffer));
+	glVerify(glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer));
+	glVerify(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 2, positions, GL_STATIC_DRAW));
 
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
-	glEnableVertexAttribArray(0);
+	glVerify(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
+	glVerify(glEnableVertexAttribArray(0));
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	unsigned int indexBuffer;
+	glVerify(glGenBuffers(1, &indexBuffer));
+	glVerify(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer));
+	glVerify(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_STATIC_DRAW));
 
 	std::string vertexShaderPath = "Shaders/VertexShader.glsl";
 	std::string vertexShader = ParseShader(vertexShaderPath);
@@ -108,22 +137,46 @@ int main(void)
 	std::string fragmentShaderPath = "Shaders/FragmentShader.glsl";
 	std::string fragmentShader = ParseShader(fragmentShaderPath);
 	unsigned int shader = CreateShader(vertexShader, fragmentShader);
-	glUseProgram(shader);
+	glVerify(glUseProgram(shader));
+	
+	glVerify(int uniformLocation = glGetUniformLocation(shader, "uniformColor"));
+	if (uniformLocation == -1)
+	{
+		std::cout << "Error capturing uniform location for uniformColor";
+	}
+	else
+	{
+		glVerify(glUniform4f(uniformLocation, 0.0f, 0.47f, 0.84f, 1.0f));
+	}
 
+	float red = 0.0f;
+	float offset = 0.01f;
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
 		/* Render here */
-		glClear(GL_COLOR_BUFFER_BIT);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glVerify(glClear(GL_COLOR_BUFFER_BIT));
+		glVerify(glUniform4f(uniformLocation, red, 0.47f, 0.84f, 1.0f));
+		glVerify(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
+
+		if (red >= 1.0f)
+		{
+			offset = -0.01f;
+		}
+		else if (red <= 0.0f)
+		{
+			offset = 0.01f;
+		}
+
+		red += offset;
 
 		/* Poll for and process events */
 		glfwPollEvents();
 	}
 
-	glDeleteShader(shader);
+	glVerify(glDeleteShader(shader));
 	glfwTerminate();
 	return 0;
 }

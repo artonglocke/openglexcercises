@@ -44,9 +44,9 @@ int main(void)
 	float positions[] =
 	{
 		-0.5f, -0.5f, 0.0f, 0.0f, // 0
-		0.5f, -0.5f, 1.0f, 0.0f,// 1
-		0.5f, 0.5f,  1.0f, 1.0f// 2
-		-0.5f, 0.5f, 0.0f, 1.0f // 3
+		0.5f, -0.5f, 1.0f, 0.0f, // 1
+		0.5f,  0.5f, 1.0f, 1.0f, // 2
+		-0.5f,  0.5f, 0.0f, 1.0f  // 3
 	};
 
 	unsigned int indices[]
@@ -73,7 +73,7 @@ int main(void)
 
 	Texture texture("Resources//download.png");
 	texture.bind();
-	shader.setUniformLocation1i("uTexture", 0);
+	shader.setUniformLocation1i("vTexCoord", 0);
 
 	vertexArray.unbind();
 	vertexBuffer.unbind();
@@ -86,7 +86,6 @@ int main(void)
 	{
 		/* Render here */
 		renderer.clear();
-		shader.bind();
 		renderer.draw(vertexArray, indexBuffer, shader);
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);

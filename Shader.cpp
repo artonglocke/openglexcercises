@@ -11,7 +11,6 @@ Shader::Shader(const std::string& filepath)
 	std::string fragmentSource = _parseShader(filepath + "/FragmentShader.glsl");
 
 	_Id = _createShader(vertexSource, fragmentSource);
-
 }
 
 
@@ -64,6 +63,19 @@ unsigned int Shader::_compileShader(unsigned int type, const std::string & sourc
 	const char* cSource = source.c_str();
 	glVerify(glShaderSource(id, 1, &cSource, nullptr));
 	glVerify(glCompileShader(id));
+	int result;
+	glVerify(glGetShaderiv(id, GL_COMPILE_STATUS, &result));
+	if (result == GL_FALSE)
+	{
+		int length;
+		glVerify(glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length));
+		char* message = (char*)alloca(length * sizeof(char));
+		glVerify(glGetShaderInfoLog(id, length, &length, message));
+		std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!" << std::endl;
+		std::cout << message << std::endl;
+		glVerify(glDeleteShader(id));
+		return 0;
+	}
 	return id;
 }
 
